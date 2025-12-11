@@ -6,39 +6,94 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo "Restoring network interfaces..."
+echo ""
 
-# Find monitor mode interfaces
-mon_interfaces=$(iw dev | grep -B 2 "type monitor" | grep Interface | awk '{print $2}')
+# Kill interfering processes first
+echo "Stopping interfering processes..."
+airmon-ng check kill
+sleep 1
 
-if [ -z "$mon_interfaces" ]; then
+# Find all monitor mode interfaces
+echo "Searching for monitor mode interfaces..."
+mon_interfaces=$(iw dev | awk '/Interface/ {iface=$2} /type monitor/ {print iface}')
+
+# Also find interfaces with 'mon' suffix
+mon_suffix=$(iw dev | awk '/Interface/ {if($2 ~ /mon$/) print $2}')
+
+# Combine both lists
+all_interfaces=$(echo -e "$mon_interfaces\n$mon_suffix" | sort -u | grep -v '^$')
+
+if [ -z "$all_interfaces" ]; then
     echo "No monitor mode interfaces found."
 else
-    for iface in $mon_interfaces; do
-        echo "Stopping monitor mode on $iface..."
+    echo "Found interfaces to restore:"
+    echo "$all_interfaces"
+    echo ""
+    
+    for iface in $all_interfaces; do
+        echo "=== Processing $iface ==="
         
-        # Try airmon-ng first
-        airmon-ng stop $iface
+        # Check if interface exists
+        if ! ip link show $iface &>/dev/null; then
+            echo "Interface $iface does not exist, skipping..."
+            continue
+        fi
         
-        # Double check and manually disable if still in monitor mode
-        sleep 1
-        if iw dev $iface info 2>/dev/null | grep -q "type monitor"; then
-            echo "Manually disabling monitor mode on $iface..."
-            ip link set $iface down
-            iw dev $iface set type managed
-            ip link set $iface up
+        # Get current type
+        current_type=$(iw dev $iface info 2>/dev/null | awk '/type/ {print $2}')
+        echo "Current type: $current_type"
+        
+        # If already managed, skip
+        if [ "$current_type" = "managed" ]; then
+            echo "$iface is already in managed mode."
             
-            # Check if conversion was successful
-            sleep 1
-            if iw dev $iface info 2>/dev/null | grep -q "type managed"; then
-                echo "Successfully converted $iface to managed mode."
-                # Unlock channel restrictions
-                echo "Removing channel restrictions..."
-                iw dev $iface set channel auto 2>/dev/null || true
-                iwconfig $iface channel auto 2>/dev/null || true
-            else
-                echo "Warning: $iface may still be in monitor mode."
+            # Check if it has 'mon' suffix, try to restore original name
+            if [[ $iface == *mon ]]; then
+                base_name=${iface%mon}
+                echo "Attempting to restore original interface name to $base_name..."
+                airmon-ng stop $iface 2>/dev/null
+            fi
+            echo ""
+            continue
+        fi
+        
+        # Try airmon-ng stop
+        echo "Trying airmon-ng stop..."
+        airmon-ng stop $iface 2>/dev/null
+        sleep 1
+        
+        # Check if interface was renamed after airmon-ng stop
+        if ! ip link show $iface &>/dev/null && [[ $iface == *mon ]]; then
+            base_name=${iface%mon}
+            if ip link show $base_name &>/dev/null; then
+                echo "Interface renamed to $base_name"
+                iface=$base_name
             fi
         fi
+        
+        # Check if still exists and still in monitor mode
+        if ip link show $iface &>/dev/null; then
+            current_type=$(iw dev $iface info 2>/dev/null | awk '/type/ {print $2}')
+            
+            if [ "$current_type" = "monitor" ]; then
+                echo "Still in monitor mode, converting manually..."
+                ip link set $iface down
+                iw dev $iface set type managed
+                ip link set $iface up
+                sleep 1
+                
+                # Verify
+                new_type=$(iw dev $iface info 2>/dev/null | awk '/type/ {print $2}')
+                if [ "$new_type" = "managed" ]; then
+                    echo "✓ Successfully converted $iface to managed mode"
+                else
+                    echo "✗ Failed to convert $iface (current type: $new_type)"
+                fi
+            else
+                echo "✓ $iface is now in $current_type mode"
+            fi
+        fi
+        echo ""
     done
 fi
 

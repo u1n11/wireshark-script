@@ -1,4 +1,4 @@
-# WLAN Monitor Automation
+# WLAN Monitor Automation v0.1.0
 
 This project provides scripts to automate the process of setting up a wireless network interface in monitor mode, scanning for networks, and launching Wireshark on a specific channel.
 

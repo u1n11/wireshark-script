@@ -102,7 +102,7 @@ echo "Selected interface: $selected_iface"
 
 # 3. Enable monitor mode
 echo "Enabling monitor mode..."
-# airmon-ng check kill
+airmon-ng check kill
 airmon-ng start $selected_iface
 
 # Find the new monitor interface name (often wlan0mon)
