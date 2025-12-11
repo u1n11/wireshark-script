@@ -12,7 +12,36 @@
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
-            }
+            },
+            "group": "test"
+        },
+        {
+            "label": "Start WLAN Monitor (All Interfaces)",
+            "type": "shell",
+            "command": "sudo ./wlan_monitor.sh all",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "group": "test"
+        },
+        {
+            "label": "Start WLAN Monitor (With Network)(Not Recommand)",
+            "type": "shell",
+            "command": "sudo ./wlan_monitor.sh with-network",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "group": "test"
         },
         {
             "label": "Restore WLAN",
@@ -25,7 +54,8 @@
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
-            }
+            },
+            "group": "test"
         },
         {
             "label": "Setup WLAN Monitor Tools",
@@ -38,7 +68,8 @@
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
-            }
+            },
+            "group": "test"
         }
     ]
 }
