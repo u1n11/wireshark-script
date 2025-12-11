@@ -44,6 +44,20 @@
             "group": "test"
         },
         {
+            "label": "Change Monitor Channel",
+            "type": "shell",
+            "command": "sudo ./wlan_monitor_change_channel.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "group": "test"
+        },
+        {
             "label": "Restore WLAN",
             "type": "shell",
             "command": "sudo ./wlan_monitor_restore.sh",
